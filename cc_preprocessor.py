@@ -8,23 +8,25 @@ class Preprocessor(BaseEstimator, TransformerMixin):
     """
     A sklearn-compatible preprocessor class that encapsulates the 
     feature_engineer function logic.
-
-    It learns target encodings during fit() and applies all 
-    transformations during transform().
+    
+    Can be initialized in 'xgboost' (default) or 'catboost' mode.
+    - 'xgboost': Performs target encoding and drops raw categorical columns.
+    - 'catboost': Skips target encoding and keeps raw categorical columns.
     
     NOTE: The 'get_state' function for zip_code -> state conversion
     was not provided, so the 'state' feature and any dependent
     target encoding ('state_target_enc') are omitted from this class.
     """
     
-    def __init__(self, smoothing_factor=10):
+    def __init__(self, smoothing_factor=10, mode='xgboost'): 
         self.smoothing_factor = smoothing_factor
+        self.mode = mode # <-- ADDED MODE
         self.target_mean_maps_ = {}
         self.global_mean_ = 0
         self.cat_for_encoding_ = [
             'accident_site', 'accident_type', 'channel',
             'vehicle_category', 'vehicle_color', 'living_status',
-            'claim_dayofweek', 'gender', 'in_network_bodyshop',
+            'claim_day_of_week', 'gender', 'in_network_bodyshop',
             'season' # 'state' is omitted as get_state function is not available
         ]
 
@@ -34,7 +36,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         X: DataFrame of features
         y: Series, the target variable (e.g., 'subrogation')
         """
-        print("Fitting Preprocessor...")
+        print(f"Fitting Preprocessor in '{self.mode}' mode...")
         df = X.copy()
         df['subrogation'] = y
 
@@ -45,24 +47,30 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         df = self._engineer_temporal(df)
         
         # --- Learn Target Encodings ---
-        self.global_mean_ = df['subrogation'].mean()
-        self.target_mean_maps_ = {}
+        if self.mode == 'catboost': # <-- ADDED CHECK
+            print("CatBoost mode: Skipping target encoding learning.")
+            self.global_mean_ = df['subrogation'].mean() # Still need this for potential fillna
+            self.target_mean_maps_ = {}
+        else: # Default 'xgboost' behavior
+            print("XGBoost mode: Learning target encodings...")
+            self.global_mean_ = df['subrogation'].mean()
+            self.target_mean_maps_ = {}
 
-        for col in self.cat_for_encoding_:
-            if col not in df.columns:
-                print(f"Warning: Column '{col}' not found for target encoding. Skipping.")
-                continue
+            for col in self.cat_for_encoding_:
+                if col not in df.columns:
+                    print(f"Warning: Column '{col}' not found for target encoding. Skipping.")
+                    continue
+                    
+                # Calculate mean subrogation rate per category
+                target_mean = df.groupby(col)['subrogation'].mean()
+
+                # Apply smoothing
+                category_counts = df.groupby(col).size()
+                smoothing = self.smoothing_factor
+                smoothed_mean = (target_mean * category_counts + self.global_mean_ * smoothing) / (category_counts + smoothing)
                 
-            # Calculate mean subrogation rate per category
-            target_mean = df.groupby(col)['subrogation'].mean()
-
-            # Apply smoothing
-            category_counts = df.groupby(col).size()
-            smoothing = self.smoothing_factor
-            smoothed_mean = (target_mean * category_counts + self.global_mean_ * smoothing) / (category_counts + smoothing)
-            
-            # Store the map
-            self.target_mean_maps_[col] = smoothed_mean
+                # Store the map
+                self.target_mean_maps_[col] = smoothed_mean
 
         print("Fit complete.")
         return self
@@ -71,7 +79,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         """
         Applies all feature engineering transformations to the data.
         """
-        print("Transforming data...")
+        print(f"Transforming data in '{self.mode}' mode...")
         df_fe = X.copy()
 
         # Apply all feature engineering steps
@@ -93,26 +101,45 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         df_fe = self._engineer_domain_flags(df_fe)
         
         # --- Apply Learned Target Encodings ---
-        print("Applying learned target encodings...")
-        for col, target_mean_map in self.target_mean_maps_.items():
-            if col not in df_fe.columns:
-                print(f"Warning: Column '{col}' not found during transform. Skipping encoding.")
-                continue
-            
-            # Apply to test set, fill any new/unseen categories with the global mean
-            df_fe[f'{col}_target_enc'] = df_fe[col].map(target_mean_map).fillna(self.global_mean_)
+        if self.mode == 'catboost':
+            print("CatBoost mode: Skipping target encoding application.")
+        else:
+            print("XGBoost mode: Applying learned target encodings...")
+            for col, target_mean_map in self.target_mean_maps_.items():
+                if col not in df_fe.columns:
+                    print(f"Warning: Column '{col}' not found during transform. Skipping encoding.")
+                    continue
+                
+                # Apply to test set, fill any new/unseen categories with the global mean
+                df_fe[f'{col}_target_enc'] = df_fe[col].map(target_mean_map).fillna(self.global_mean_)
 
-        print("Transform complete.")
-        
         # --- Final Drop of Raw Object/Datetime Columns ---
-        # XGBoost DMatrix cannot handle object or datetime columns.
-        # We select all columns of these types and drop them.
-        cols_to_drop = df_fe.select_dtypes(include=['object', 'datetime64[ns]']).columns
+        if self.mode == 'catboost': 
+            print("CatBoost mode: Dropping unused object/datetime columns...")
+
+            all_object_cols = df_fe.select_dtypes(include=['object']).columns
+            
+            object_cols_to_drop = [
+                col for col in all_object_cols 
+                if col not in self.cat_for_encoding_
+            ]
+            
+            datetime_cols_to_drop = df_fe.select_dtypes(include=['datetime64[ns]']).columns
+            
+            cols_to_drop = list(object_cols_to_drop) + list(datetime_cols_to_drop)
+            
+            if len(cols_to_drop) > 0:
+                print(f"Dropping: {cols_to_drop}")
+                df_fe = df_fe.drop(columns=cols_to_drop)
+        else:
+            # Original XGBoost behavior
+            print("XGBoost mode: Dropping final object/datetime columns.")
+            cols_to_drop = df_fe.select_dtypes(include=['object', 'datetime64[ns]']).columns
+            if len(cols_to_drop) > 0:
+                print(f"Dropping final object/datetime columns: {list(cols_to_drop)}")
+                df_fe = df_fe.drop(columns=cols_to_drop)
         
-        if len(cols_to_drop) > 0:
-            print(f"Dropping final object/datetime columns: {list(cols_to_drop)}")
-            df_fe = df_fe.drop(columns=cols_to_drop)
-        
+        print("Transform complete.")
         return df_fe
 
     # =======================================================================
@@ -151,15 +178,15 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         # Ensure 'claim_date' is datetime (might be redundant if _clean_data ran)
         df_fe['claim_date'] = pd.to_datetime(df_fe['claim_date'], errors='coerce')
         
-        if 'claim_date' in df_fe.columns:
+        if 'claim_date' in df_fe.columns and pd.api.types.is_datetime64_any_dtype(df_fe['claim_date']):
             df_fe['claim_year'] = df_fe['claim_date'].dt.year
             df_fe['claim_month'] = df_fe['claim_date'].dt.month
             df_fe['claim_day'] = df_fe['claim_date'].dt.day
             df_fe['claim_quarter'] = df_fe['claim_date'].dt.quarter
-            df_fe['claim_dayofweek'] = df_fe['claim_date'].dt.dayofweek
-            df_fe['is_weekend'] = (df_fe['claim_dayofweek'] >= 5).astype(int)
-            df_fe['is_monday'] = (df_fe['claim_dayofweek'] == 0).astype(int)
-            df_fe['is_friday'] = (df_fe['claim_dayofweek'] == 4).astype(int)
+            df_fe['claim_day_of_week'] = df_fe['claim_date'].dt.dayofweek
+            df_fe['is_weekend'] = (df_fe['claim_day_of_week'] >= 5).astype(int)
+            df_fe['is_monday'] = (df_fe['claim_day_of_week'] == 0).astype(int)
+            df_fe['is_friday'] = (df_fe['claim_day_of_week'] == 4).astype(int)
             df_fe['is_q4'] = (df_fe['claim_quarter'] == 4).astype(int)
 
             season_map = {
@@ -291,20 +318,26 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         """Driver age and experience features."""
         df_fe = df.copy()
 
-        if 'claim_year' not in df_fe.columns:
+        if 'claim_year' not in df_fe.columns and 'claim_date' in df_fe.columns:
              df_fe['claim_year'] = pd.to_datetime(df_fe['claim_date'], errors='coerce').dt.year
+        
+        if 'claim_year' in df_fe.columns:
+            df_fe['driver_age'] = df_fe['claim_year'] - df_fe['year_of_born']
+            df_fe.loc[(df_fe['driver_age'] < 16) | (df_fe['driver_age'] > 100), 'driver_age'] = np.nan
 
-        df_fe['driver_age'] = df_fe['claim_year'] - df_fe['year_of_born']
-        df_fe.loc[(df_fe['driver_age'] < 16) | (df_fe['driver_age'] > 100), 'driver_age'] = np.nan
+            df_fe['young_driver'] = ((df_fe['driver_age'] >= 16) & (df_fe['driver_age'] <= 25)).astype(int)
+            df_fe['senior_driver'] = (df_fe['driver_age'] > 65).astype(int)
 
-        df_fe['young_driver'] = ((df_fe['driver_age'] >= 16) & (df_fe['driver_age'] <= 25)).astype(int)
-        df_fe['prime_driver'] = ((df_fe['driver_age'] > 25) & (df_fe['driver_age'] <= 45)).astype(int)
-        df_fe['middle_age_driver'] = ((df_fe['driver_age'] > 45) & (df_fe['driver_age'] <= 65)).astype(int)
-        df_fe['senior_driver'] = (df_fe['driver_age'] > 65).astype(int)
-
-        df_fe['driving_experience'] = (df_fe['driver_age'] - df_fe['age_of_DL']).clip(lower=0)
-        df_fe.loc[df_fe['driving_experience'] < 0, 'driving_experience'] = np.nan
-
+            df_fe['driving_experience'] = (df_fe['driver_age'] - df_fe['age_of_DL']).clip(lower=0)
+            df_fe.loc[df_fe['driving_experience'] < 0, 'driving_experience'] = np.nan
+        else:
+            # Create NaNs if claim_year couldn't be created
+            cols = ['driver_age', 'young_driver', 'prime_driver', 'middle_age_driver', 'senior_driver', 'driving_experience']
+            for col in cols:
+                if col not in df_fe.columns:
+                    df_fe[col] = np.nan
+        
+        # These can be created even if driver_age is NaN, though they will be NaN
         df_fe['novice_driver'] = (df_fe['driving_experience'] < 3).astype(int)
         df_fe['experienced_driver'] = ((df_fe['driving_experience'] >= 3) & (df_fe['driving_experience'] <= 10)).astype(int)
         df_fe['veteran_driver'] = (df_fe['driving_experience'] > 10).astype(int)
@@ -318,13 +351,20 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         """Vehicle features."""
         df_fe = df.copy()
         
-        if 'claim_year' not in df_fe.columns:
+        if 'claim_year' not in df_fe.columns and 'claim_date' in df_fe.columns:
              df_fe['claim_year'] = pd.to_datetime(df_fe['claim_date'], errors='coerce').dt.year
 
-        df_fe['vehicle_age'] = df_fe['claim_year'] - df_fe['vehicle_made_year']
-        df_fe['new_vehicle'] = (df_fe['vehicle_age'] <= 2).astype(int)
-        df_fe['mid_age_vehicle'] = ((df_fe['vehicle_age'] > 2) & (df_fe['vehicle_age'] <= 7)).astype(int)
-        df_fe['old_vehicle'] = (df_fe['vehicle_age'] > 10).astype(int)
+        if 'claim_year' in df_fe.columns:
+            df_fe['vehicle_age'] = df_fe['claim_year'] - df_fe['vehicle_made_year']
+            df_fe['new_vehicle'] = (df_fe['vehicle_age'] <= 2).astype(int)
+            df_fe['mid_age_vehicle'] = ((df_fe['vehicle_age'] > 2) & (df_fe['vehicle_age'] <= 7)).astype(int)
+            df_fe['old_vehicle'] = (df_fe['vehicle_age'] > 10).astype(int)
+        else:
+            # Create NaNs if claim_year couldn't be created
+            cols = ['vehicle_age', 'new_vehicle', 'mid_age_vehicle', 'old_vehicle']
+            for col in cols:
+                if col not in df_fe.columns:
+                    df_fe[col] = np.nan
 
         df_fe['luxury_vehicle'] = (df_fe['vehicle_price'] > 50000).astype(int)
         df_fe['mid_price_vehicle'] = ((df_fe['vehicle_price'] >= 20000) & (df_fe['vehicle_price'] <= 50000)).astype(int)
@@ -364,17 +404,26 @@ class Preprocessor(BaseEstimator, TransformerMixin):
 
         # Ensure dependencies are created if not present
         if 'vehicle_age' not in df_fe.columns:
-            if 'claim_year' not in df_fe.columns:
+            if 'claim_year' not in df_fe.columns and 'claim_date' in df_fe.columns:
                  df_fe['claim_year'] = pd.to_datetime(df_fe['claim_date'], errors='coerce').dt.year
-            df_fe['vehicle_age'] = df_fe['claim_year'] - df_fe['vehicle_made_year']
+            
+            if 'claim_year' in df_fe.columns:
+                df_fe['vehicle_age'] = df_fe['claim_year'] - df_fe['vehicle_made_year']
+            else:
+                df_fe['vehicle_age'] = np.nan
         
         if 'driving_experience' not in df_fe.columns:
-            if 'claim_year' not in df_fe.columns:
+            if 'claim_year' not in df_fe.columns and 'claim_date' in df_fe.columns:
                  df_fe['claim_year'] = pd.to_datetime(df_fe['claim_date'], errors='coerce').dt.year
-            df_fe['driver_age'] = df_fe['claim_year'] - df_fe['year_of_born']
-            df_fe.loc[(df_fe['driver_age'] < 16) | (df_fe['driver_age'] > 100), 'driver_age'] = np.nan
-            df_fe['driving_experience'] = (df_fe['driver_age'] - df_fe['age_of_DL']).clip(lower=0)
-            df_fe.loc[df_fe['driving_experience'] < 0, 'driving_experience'] = np.nan
+            
+            if 'claim_year' in df_fe.columns:
+                df_fe['driver_age'] = df_fe['claim_year'] - df_fe['year_of_born']
+                df_fe.loc[(df_fe['driver_age'] < 16) | (df_fe['driver_age'] > 100), 'driver_age'] = np.nan
+                df_fe['driving_experience'] = (df_fe['driver_age'] - df_fe['age_of_DL']).clip(lower=0)
+                df_fe.loc[df_fe['driving_experience'] < 0, 'driving_experience'] = np.nan
+            else:
+                df_fe['driving_experience'] = np.nan
+
 
         df_fe['payout_to_price_ratio'] = df_fe['claim_est_payout'] / (df_fe['vehicle_price'] + 1)
         df_fe['severe_damage'] = (df_fe['payout_to_price_ratio'] > 0.3).astype(int)
