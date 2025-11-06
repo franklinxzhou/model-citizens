@@ -27,7 +27,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
             'accident_site', 'accident_type', 'channel',
             'vehicle_category', 'vehicle_color', 'living_status',
             'claim_day_of_week', 'gender', 'in_network_bodyshop',
-            'season'
+            'season', 'witness_present_ind'
         ]
 
     def fit(self, X, y):
@@ -135,7 +135,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
              df_fe['claim_year'] = df_fe['claim_date'].dt.year
         
         # Cleaning
-        df_fe.loc[(df_fe['year_of_born'] < 1900) | (df_fe['year_of_born'] > 2025), 'year_of_born'] = np.nan
+        df_fe.loc[(df_fe['year_of_born'] < 1900) | (df_fe['year_of_born'] > 2021), 'year_of_born'] = np.nan
         
         # --- REMOVED vehicle_made_year cleaning block ---
 

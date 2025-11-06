@@ -158,7 +158,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
              df_fe['claim_year'] = df_fe['claim_date'].dt.year
         
         # Cleaning
-        df_fe.loc[(df_fe['year_of_born'] < 1900) | (df_fe['year_of_born'] > 2025), 'year_of_born'] = np.nan
+        df_fe.loc[(df_fe['year_of_born'] < 1900) | (df_fe['year_of_born'] > 2021), 'year_of_born'] = np.nan
         
         if 'claim_year' in df_fe.columns:
             future_mask = df_fe['vehicle_made_year'] > df_fe['claim_year']
