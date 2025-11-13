@@ -1,0 +1,44 @@
+{
+    "best_threshold": 0.3,
+    "best_params": {
+        "lr": 0.0011183425690718294,
+        "weight_decay": 0.004187499814600279,
+        "batch_size": 64,
+        "n_epochs": 33,
+        "pos_weight_scale": 2.159985493642329,
+        "n_blocks": 4,
+        "d_block": 455,
+        "dropout": 0.18355459979095332,
+        "k": 24
+    },
+    "num_cols": [
+        "year_of_born",
+        "email_or_tel_available",
+        "safety_rating",
+        "annual_income",
+        "high_education_ind",
+        "address_change_ind",
+        "past_num_of_claims",
+        "liab_prct",
+        "policy_report_filed_ind",
+        "claim_est_payout",
+        "vehicle_made_year",
+        "vehicle_price",
+        "vehicle_weight",
+        "age_of_DL",
+        "vehicle_mileage"
+    ],
+    "cat_cols": [
+        "gender",
+        "living_status",
+        "zip_code",
+        "claim_day_of_week",
+        "accident_site",
+        "witness_present_ind",
+        "channel",
+        "vehicle_category",
+        "vehicle_color",
+        "accident_type",
+        "in_network_bodyshop"
+    ]
+}

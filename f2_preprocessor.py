@@ -68,7 +68,15 @@ class Preprocessor:
             "vehicle_age_at_claim",
             "years_with_license",
             "log_claim_est_payout",
+            "driving_experience",
+            "claims_per_year_driving",
+            "behavioral_risk_index",
+            "payout_to_price_ratio",
+            "income_to_price_ratio",
+            "mileage_to_price",
+            "weight_to_price",
         ]
+
 
         # Final numeric columns (base + domain)
         self.num_cols: List[str] = []
@@ -81,35 +89,70 @@ class Preprocessor:
     # ------------------------------------------------------------------ #
     # 1) DOMAIN FEATURE ENGINEERING
     # ------------------------------------------------------------------ #
+    
     def _add_domain_features(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
 
-        # Parse claim_date to year
+        # --- Your existing code: driver_age_at_claim, vehicle_age_at_claim, years_with_license, log_claim_est_payout ---
         claim_dt = pd.to_datetime(df.get("claim_date"), errors="coerce")
         claim_year = claim_dt.dt.year
 
-        # 1. driver_age_at_claim
         df["driver_age_at_claim"] = claim_year - df["year_of_born"]
         df.loc[df["driver_age_at_claim"] < 0, "driver_age_at_claim"] = np.nan
 
-        # 2. vehicle_age_at_claim
         if "age_of_vehicle" in df.columns:
             df["vehicle_age_at_claim"] = df["age_of_vehicle"]
         else:
             df["vehicle_age_at_claim"] = claim_year - df["vehicle_made_year"]
         df.loc[df["vehicle_age_at_claim"] < 0, "vehicle_age_at_claim"] = np.nan
 
-        # 3. years_with_license
-        df["years_with_license"] = (
-            df["driver_age_at_claim"] - df["age_of_DL"]
-        )
+        df["years_with_license"] = df["driver_age_at_claim"] - df["age_of_DL"]
         df.loc[df["years_with_license"] < 0, "years_with_license"] = np.nan
 
-        # 4. log_claim_est_payout
         payout = df["claim_est_payout"].clip(lower=0)
         df["log_claim_est_payout"] = np.log1p(payout)
 
+        # ===============================
+        # cc5-inspired but TabM-friendly
+        # ===============================
+
+        # --- A. Driver experience & claim frequency ---
+        df["driving_experience"] = (df["years_with_license"]).clip(lower=0)
+        df.loc[df["driving_experience"] < 0, "driving_experience"] = np.nan
+
+        df["claims_per_year_driving"] = df["past_num_of_claims"] / (df["driving_experience"] + 1)
+        df["claim_frequency_high"] = (df["claims_per_year_driving"] > 0.5).astype(int)
+
+        # Behavioral risk: how often they claim × how unsafe they are
+        df["behavioral_risk_index"] = df["claims_per_year_driving"] * (100 - df["safety_rating"]) / 100.0
+
+        # --- B. Payout vs vehicle price & damage severity ---
+        denom = (df["vehicle_price"] + 1).replace(0, 1)  # avoid div-by-zero edge cases
+        df["payout_to_price_ratio"] = df["claim_est_payout"] / denom
+
+        df["severe_damage"] = (df["payout_to_price_ratio"] > 0.3).astype(int)
+        df["moderate_damage"] = ((df["payout_to_price_ratio"] > 0.1) &
+                                 (df["payout_to_price_ratio"] <= 0.3)).astype(int)
+        df["minor_damage"] = (df["payout_to_price_ratio"] < 0.1).astype(int)
+
+        # --- C. Income vs vehicle price ---
+        df["income_to_price_ratio"] = df["annual_income"] / denom
+        df["can_afford_vehicle"] = (df["income_to_price_ratio"] >= 0.5).astype(int)
+        df["expensive_for_income"] = (df["income_to_price_ratio"] < 0.3).astype(int)
+
+        # --- D. Mileage / weight vs price ---
+        df["mileage_to_price"] = df["vehicle_mileage"] / denom
+        df["weight_to_price"] = df["vehicle_weight"] / denom
+
+        # --- E. Simple temporal flags ---
+        if "claim_date" in df.columns:
+            dt = pd.to_datetime(df["claim_date"], errors="coerce")
+            df["is_weekend"] = dt.dt.dayofweek.isin([5, 6]).astype(int)
+            df["claim_early_in_year"] = dt.dt.month.isin([1, 2, 3]).astype(int)
+            df["claim_end_of_year"] = dt.dt.month.isin([10, 11, 12]).astype(int)
+
         return df
+
 
     # ------------------------------------------------------------------ #
     # 2) NUMERIC PREPROCESSING
