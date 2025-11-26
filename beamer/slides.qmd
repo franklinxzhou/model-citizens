@@ -1,0 +1,59 @@
+---
+title: "Predicting Opportunity of Subrogation with Real Claim Data"
+subtitle: "Model Citizens, 2025 Travelers UMC"
+author: "Wenjie Gong, Cecilia Liu, Simeng Wu, Carol Zhou, Franklin Zhou"
+institute: "Department of Statistical Science, Duke University"
+format: 
+    beamer:
+        navigation: horizontal
+        header-includes: |
+            \titlegraphic{\includegraphics[width=0.20\paperwidth]{duke_wordmark_royalblue_00539B.png}}
+---
+
+## Introduction
+
+- Placeholder
+- Placeholder
+
+## Methods
+
+- Placeholder
+- Placeholder
+
+## XGBoost
+
+- Placeholder
+- Placeholder
+
+## LightGBM
+
+- Placeholder
+- Placeholder
+
+## CatBoost
+
+- Placeholder
+- Placeholder
+
+## TabM
+
+- Placeholder
+- Placeholder
+
+## Logistic Regression
+
+- Placeholder
+- Placeholder
+
+## Ensemble (XXBoost)
+
+- Placeholder
+- Placeholder
+
+## Results
+
+- Placeholder
+
+## Conclusion
+
+- Placeholder
