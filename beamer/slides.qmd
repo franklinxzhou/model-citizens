@@ -73,6 +73,11 @@ Evaluation Metric: \textcolor{red}{F1 score} (balances precision and recall due 
 :::
 :::
 
+## We Leverages Multiple Model Families
+
+- **Linear Model**: Logistic Regression with LASSO  
+- **Tree-based Models**: XGBoost, CatBoost, LightGBM, LogitBoost, Random Forest  
+- **MLP-based Models**: TabM
 
 ## Why We Used Multiple Preprocessing Pipelines?
 \footnotesize
@@ -108,11 +113,48 @@ Each model family has its own optimized pipeline, in accordance with their algor
 \end{tabularx}
 \end{table}
 
-## We Leverages Multiple Model Families
+## Comparison of Preprocessing Pipelines for GBMs
 
-- **Linear Model**: Logistic Regression with LASSO  
-- **Tree-based Models**: XGBoost, CatBoost, LightGBM, LogitBoost, Random Forest  
-- **MLP-based Models**: TabM
+\footnotesize
+
+We designed three classes of preprocessing pipelines for XGBoost, CatBoost, and LightGBM.
+
+:::: {.columns}
+
+::: {.column width="33%"}
+
+LightGBM
+
+- Has most features (most extensive transformation)
+- Creates binary flags for categorical variables
+- Applies Z-scores, Log transforms, and bucketing for numerical variables
+- Applies aggressive feature engineering, with 2-way/3-way interactions, polynomials, domain-specific flags
+
+:::
+
+::: {.column width="33%"}
+
+CatBoost
+
+- Has least features (minimal transformation)
+- Casts categorical values into strings
+- Keeps numerical data *as is*
+- Approaches feature engineering very conservatively, with only a few ratio features
+
+:::
+
+::: {.column width="33%"}
+
+XGBoost
+
+- Has moderately many features (a balanced approach)
+- Casts categorical values into integers
+- Applies scaling and some Log transforms for numerical variables
+- Applies moderate level of feature engineering with temporal features, interactions, and differences
+
+:::
+
+::::
 
 ## Sample Workflow
 \begin{center}
@@ -291,51 +333,6 @@ Simple XGBoost & 0.50157 & 0.51584 & Benchmark \\
 - Harder to interpret combined model
 - Majority vote doesn't use calibrated probabilities
 - Feature engineering consistency is limited
-
-
-
-## Comparison of Preprocessing Pipelines for GBMs
-
-\footnotesize
-
-We designed three classes of preprocessing pipelines for XGBoost, CatBoost, and LightGBM.
-
-:::: {.columns}
-
-::: {.column width="33%"}
-
-LightGBM
-
-- Has most features (most extensive transformation)
-- Creates binary flags for categorical variables
-- Applies Z-scores, Log transforms, and bucketing for numerical variables
-- Applies aggressive feature engineering, with 2-way/3-way interactions, polynomials, domain-specific flags
-
-:::
-
-::: {.column width="33%"}
-
-CatBoost
-
-- Has least features (minimal transformation)
-- Casts categorical values into strings
-- Keeps numerical data *as is*
-- Approaches feature engineering very conservatively, with only a few ratio features
-
-:::
-
-::: {.column width="33%"}
-
-XGBoost
-
-- Has moderately many features (a balanced approach)
-- Casts categorical values into integers
-- Applies scaling and some Log transforms for numerical variables
-- Applies moderate level of feature engineering with temporal features, interactions, and differences
-
-:::
-
-::::
 
 ## Sample Workflow 1 (XGBoost 1)
 
@@ -600,3 +597,7 @@ XGBoost
 ![](xgboost_im.png){width=48%}
 ![](CatBoost_im.png){width=48%}
 ![](TabM_im.png){width=48%}
+
+## Conclusion
+
+We predicted which auto insurance claims are likely to result in successful subrogation using a majority-vote ensemble of XGBoost, CatBoost, LightGBM, and TabM, which improved performance by 0.4% over the best single model.
