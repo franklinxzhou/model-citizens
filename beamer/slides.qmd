@@ -42,33 +42,37 @@ Evaluation Metric: \textcolor{red}{F1 score} (balances precision and recall due 
 
 
 ## Data Overview
-\small
+\scriptsize
 
 ::: columns
 ::: column
 
-![](num_corr.png){width=100%}
+![](num_box.png){width=90%}
 
-![](target_var.png){width=100%}
+![](target_var.png){width=90%}
 
 :::
 
 ::: column
 
 **Dataset Summary**  
-- Training data: 18,000 rows with subrogation indicator (0/1)  
-- Test data: 12,000 rows without the indicator  
-- Features include policyholder, driver, vehicle, accident details, and estimated payout  
+- Training set: **18,000** rows with binary subrogation indicator  
+- Test set: **12,000** rows without the indicator  
+- Features describe policyholder, driver, vehicle, accident context, and estimated payout  
 
 **Data Quality Steps**  
-- Removed 2 rows with missing subrogation indicator  
-- Removed 1 row with all values missing  
-- Test dataset contains no NAs  
-- Dropped `vehicle_made_year` (post-claim dates $\rightarrow$ impossible)  
-- Excluded `age_of_vehicle` (unreliable reporting)  
+- Removed **2** training rows with missing subrogation indicator  
+- Test set contains **no missing values**  
+- Dropped `vehicle_made_year` (inconsistent with claim date) and `age_of_vehicle` (unreliable)  
+
+**General Patterns**  
+- Several numeric features exhibit skewness  
+- Subrogation indicator is **imbalanced** (few positives)  
+- `liab_prct` is strongly associated with the target  
 
 :::
 :::
+
 
 ## Why We Used Multiple Preprocessing Pipelines?
 \footnotesize
@@ -114,7 +118,7 @@ Each model family has its own optimized pipeline, in accordance with their algor
 |----------------|---------------|--------------|
 | TabM           | 0.58325       | 0.60298      |
 | CatBoost       | 0.58215       | 0.60180      |
-| XGBoost        | 0.57798       | 0.60352      |
+| XGBoost        | 0.57952       | 0.60078      |
 | LogReg + Lasso | 0.57698       | 0.59407      |
 | LightGBM       | 0.57467       | 0.59093      |
 
@@ -163,6 +167,61 @@ Each model family has its own optimized pipeline, in accordance with their algor
 
 
 
+## Motivation for Majority Voting: Wisdom of the Crowd
+
+- While we obtained decent individual models, aggregating opinions from multiple models is a good way to optimize bias and variance
+
+\begin{theorem}[Condorcet's Jury Theorem]
+If each invidual model outperforms random guessing ($p>0.5$) and is independent, the probability of majority voting being correct approaches 1 as such models are added.
+\end{theorem}
+
+- According to Condorcet's Jury Theorem, the majority voting is likely to produce a better prediction than individual models
+- The systematic error on specific feature subspaces of each individual model is now overridden by the consensus of others, leading to a smaller model bias
+- Overfitting is mitigated as the a single model might obsess over a tiny, unimportant detail in the data, while the group ignores these details and focuses on the main trends
+
+
+
+## Majority Voting Ensemble
+\footnotesize
+\vspace{-0.6em}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{l r}
+\hline
+\textbf{Model}  & \textbf{Public Score} \\
+\hline
+XGBoost   & 0.60600 \\
+CatBoost  & 0.60491 \\
+XGBoost   & 0.60352 \\
+CatBoost  & 0.60319 \\
+TabM      & 0.60298 \\
+XGBoost   & 0.60213 \\
+LightGBM  & 0.59682 \\
+\hline
+\end{tabular}
+
+\end{center}
+
+
+## Why We Choose Majority Voting Ensemble 
+
+Majority Voting is better then stacking, because
+
+- We trained each individual model with a tailor-made preprocessing pipeline, to optimize the individual model performance
+- Stacking requires a unified input feature matrix
+- If we use one unified preprocessing pipeline to retrain individual models, their performance will greatly degrade
+
+Majority Voting is better than weighted majority, because
+
+- For validation set performance, XGBoost > CatBoost > TabM
+- For test set performance (per private score): TabM > CatBoost > XGBoost
+- Majority voting algorithm tends to give XGBoost the highest weight
+- The resulting ensemble is an "expert" with validation set but a "failure" with test set
+
+## Conclusion
+
+- Placeholder
 
 ## Comparison of Preprocessing Pipelines for GBMs
 
@@ -206,42 +265,6 @@ XGBoost
 :::
 
 ::::
-
-## Motivation for Majority Voting: Wisdom of the Crowd
-
-- While we obtained decent individual models, aggregating opinions from multiple models is a good way to optimize bias and variance
-
-\begin{theorem}[Condorcet's Jury Theorem]
-If each invidual model outperforms random guessing ($p>0.5$) and is independent, the probability of majority voting being correct approaches 1 as such models are added.
-\end{theorem}
-
-- According to Condorcet's Jury Theorem, the majority voting is likely to produce a better prediction than individual models
-- The systematic error on specific feature subspaces of each individual model is now overridden by the consensus of others, leading to a smaller model bias
-- Overfitting is mitigated as the a single model might obsess over a tiny, unimportant detail in the data, while the group ignores these details and focuses on the main trends
-
-## Majority Voting Ensemble
-
-- Placeholder
-- Placeholder
-
-## Why We Choose Majority Voting Ensemble 
-
-Majority Voting is better then stacking, because
-
-- We trained each individual model with a tailor-made preprocessing pipeline, to optimize the individual model performance
-- Stacking requires a unified input feature matrix
-- If we use one unified preprocessing pipeline to retrain individual models, their performance will greatly degrade
-
-Majority Voting is better than weighted majority, because
-
-- For validation set performance, XGBoost > CatBoost > TabM
-- For test set performance (per private score): TabM > CatBoost > XGBoost
-- Majority voting algorithm tends to give XGBoost the highest weight
-- The resulting ensemble is an "expert" with validation set but a "failure" with test set
-
-## Conclusion
-
-- Placeholder
 
 ## Sample Workflow 1 (XGBoost 1)
 
@@ -443,6 +466,50 @@ Majority Voting is better than weighted majority, because
 \node (G) [box, below=of F] {Threshold Selection\\[-0.25em]{\scriptsize Post-hoc threshold optimization}};
 \node (H) [box, below=of G] {Inference Pipeline\\[-0.25em]{\scriptsize Preprocess → Predict}};
 \node (I) [box, below=of H] {Final Output\\[-0.25em]{\scriptsize Prediction CSV}};
+
+% ----------- ARROWS -----------
+\draw[->, thick] (A) -- (B);
+\draw[->, thick] (B) -- (C);
+\draw[->, thick] (C) -- (D);
+\draw[->, thick] (D) -- (E);
+\draw[->, thick] (E) -- (F);
+\draw[->, thick] (F) -- (G);
+\draw[->, thick] (G) -- (H);
+\draw[->, thick] (H) -- (I);
+
+\end{tikzpicture}
+\end{center}
+
+## Sample Workflow 5 (LightGBM)
+\begin{center}
+\begin{tikzpicture}[
+    scale=0.78,
+    transform shape,
+    node distance=0.32cm,
+    >=latex,
+    box/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=blue!60,
+        fill=blue!10,
+        very thick,
+        minimum width=5.4cm,
+        minimum height=0.72cm,
+        align=center,
+        font=\footnotesize
+    }
+]
+
+% ----------- NODES -----------
+\node (A) [box] {Raw Input Data\\[-0.25em]{\scriptsize Training/Testing CSVs}};
+\node (B) [box, below=of A] {Data Cleaning\\[-0.25em]{\scriptsize Drop missing targets, Parse Dates}};
+\node (C) [box, below=of B] {Feature Engineering\\[-0.25em]{\scriptsize Temporal, Interactions, Domain Logic Scores}};
+\node (D) [box, below=of C] {Preprocessing\\[-0.25em]{\scriptsize Target Encoding, Median Imputation}};
+\node (E) [box, below=of D] {Hyperparameter Tuning\\[-0.25em]{\scriptsize Optuna (LightGBM) + Threshold Search}};
+\node (F) [box, below=of E] {Cross-Validation\\[-0.25em]{\scriptsize 5-Fold Stratified, PR-Curve Optimization}};
+\node (G) [box, below=of F] {Final Training\\[-0.25em]{\scriptsize Retrain on 100\% Data with Best Params}};
+\node (H) [box, below=of G] {Inference Pipeline\\[-0.25em]{\scriptsize Apply Global Threshold $\to$ Predict}};
+\node (I) [box, below=of H] {Final Output\\[-0.25em]{\scriptsize Submission CSV}};
 
 % ----------- ARROWS -----------
 \draw[->, thick] (A) -- (B);
