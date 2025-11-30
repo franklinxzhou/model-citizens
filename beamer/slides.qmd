@@ -118,6 +118,49 @@ Each model family has its own optimized pipeline, in accordance with their algor
 
 *Additional models considered*: LogitBoost, Random Forest
 
+## Comparison of Preprocessing Pipelines for GBMs
+
+\footnotesize
+
+We designed three classes of preprocessing pipelines for XGBoost, CatBoost, and LightGBM.
+
+:::: {.columns}
+
+::: {.column width="33%"}
+
+LightGBM
+
+- Has most features (most extensive transformation)
+- Creates binary flags for categorical variables
+- Applies Z-scores, Log transforms, and bucketing for numerical variables
+- Applies aggressive feature engineering, with 2-way/3-way interactions, polynomials, domain-specific flags
+
+:::
+
+::: {.column width="33%"}
+
+CatBoost
+
+- Has least features (minimal transformation)
+- Casts categorical values into strings
+- Keeps numerical data *as is*
+- Approaches feature engineering very conservatively, with only a few ratio features
+
+:::
+
+::: {.column width="33%"}
+
+XGBoost
+
+- Has moderately many features (a balanced approach)
+- Casts categorical values into integers
+- Applies scaling and some Log transforms for numerical variables
+- Applies moderate level of feature engineering with temporal features, interactions, and differences
+
+:::
+
+::::
+
 ## Motivation for Majority Voting: Wisdom of the Crowd
 
 - While we obtained decent individual models, aggregating opinions from multiple models is a good way to optimize bias and variance
