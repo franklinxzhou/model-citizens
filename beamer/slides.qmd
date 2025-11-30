@@ -9,6 +9,7 @@ format:
 header-includes:
   - \usepackage{tabularx}
   - \usepackage[none]{hyphenat}
+  - \setbeamertemplate{itemize items}[ball]
 ---
 
 ## Introduction
@@ -31,12 +32,11 @@ Predict a binary outcome *Subrogation Opportunity*
 Evaluation Metric: \textcolor{red}{F1 score} (balances precision and recall due to asymmetric business costs).
 
 **Business Value**
-\begin{itemize}
-  \item[$\bullet$] Improve recovery rates and reduce net incurred losses  
-  \item[$\bullet$] Help subrogation specialists prioritize high-value cases  
-  \item[$\bullet$] Reduce time spent on low-likelihood opportunities  
-  \item[$\bullet$] Support data-driven decision-making in the claims process  
-\end{itemize}
+
+- Improve recovery rates and reduce net incurred losses  
+- Help subrogation specialists prioritize high-value cases  
+- Reduce time spent on low-likelihood opportunities  
+- Support data-driven decision-making in the claims process  
 
 
 ## Data Overview
@@ -62,7 +62,7 @@ Evaluation Metric: \textcolor{red}{F1 score} (balances precision and recall due 
 - Removed 2 rows with missing subrogation indicator  
 - Removed 1 row with all values missing  
 - Test dataset contains no NAs  
-- Dropped `vehicle_made_year` (post-claim dates → impossible)  
+- Dropped `vehicle_made_year` (post-claim dates $\rightarrow$ impossible)  
 - Excluded `age_of_vehicle` (unreliable reporting)  
 
 :::
@@ -102,48 +102,53 @@ Each model family has its own optimized pipeline, in accordance with their algor
 \end{tabularx}
 \end{table}
 
+## We Leverages Multiple Model Families
 
+- **Linear Model**: Logistic Regression model with LASSO
+- **Tree-based Model**: XGBoost, CatBoost, LightGBM
+- **MLP**: TabM
 
+| Model          | Private Score | Public Score |
+|----------------|---------------|--------------|
+| TabM           | 0.58325       | 0.60298      |
+| CatBoost       | 0.58215       | 0.60180      |
+| XGBoost        | 0.57798       | 0.60352      |
+| LogReg + Lasso | 0.57698       | 0.59407      |
+| LightGBM       | 0.57467       | 0.59093      |
 
+*Additional models considered*: LogitBoost, Random Forest
 
-## Methods
+## Motivation for Majority Voting: Wisdom of the Crowd
 
-- Placeholder
-- Placeholder
+- While we obtained decent individual models, aggregating opinions from multiple models is a good way to optimize bias and variance
 
-## XGBoost
+\begin{theorem}[Condorcet's Jury Theorem]
+If each invidual model outperforms random guessing ($p>0.5$) and is independent, the probability of majority voting being correct approaches 1 as such models are added.
+\end{theorem}
 
-- Placeholder
-- Placeholder
+- According to Condorcet's Jury Theorem, the majority voting is likely to produce a better prediction than individual models
+- The systematic error on specific feature subspaces of each individual model is now overridden by the consensus of others, leading to a smaller model bias
+- Overfitting is mitigated as the a single model might obsess over a tiny, unimportant detail in the data, while the group ignores these details and focuses on the main trends
 
-## LightGBM
-
-- Placeholder
-- Placeholder
-
-## CatBoost
-
-- Placeholder
-- Placeholder
-
-## TabM
-
-- Placeholder
-- Placeholder
-
-## Logistic Regression
-
-- Placeholder
-- Placeholder
-
-## Ensemble (XXBoost)
+## Majority Voting Ensemble
 
 - Placeholder
 - Placeholder
 
-## Results
+## Why We Choose Majority Voting Ensemble 
 
-- Placeholder
+Majority Voting is better then stacking, because
+
+- We trained each individual model with a tailor-made preprocessing pipeline, to optimize the individual model performance
+- Stacking requires a unified input feature matrix
+- If we use one unified preprocessing pipeline to retrain individual models, their performance will greatly degrade
+
+Majority Voting is better than weighted majority, because
+
+- For validation set performance, XGBoost > CatBoost > TabM
+- For test set performance (per private score): TabM > CatBoost > XGBoost
+- Majority voting algorithm tends to give XGBoost the highest weight
+- The resulting ensemble is an "expert" with validation set but a "failure" with test set
 
 ## Conclusion
 
