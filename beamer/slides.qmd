@@ -242,12 +242,16 @@ Soft, continuous reweighting captures smooth nonlinear interactions. \\
 \end{tabularx}
 \end{table}
 
+
 ## SHAP & Feature Importance
+\scriptsize
 
 \begin{center}
-\includegraphics[width=0.6\textwidth]{XGBoost_SHAP.png}
+\includegraphics[width=0.55\textwidth]{XGBoost_SHAP.png}
 \end{center}
 
+Compared to the feature importance plots in the last slide, **liab_prct**, **witness_present_ind**, and **in_network_bodyshop** 
+consistently surfaced as high-impact predictors.
 
 ## Model Evaluation & Results
 \scriptsize
