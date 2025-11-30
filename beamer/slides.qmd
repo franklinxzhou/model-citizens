@@ -6,14 +6,105 @@ institute: "Department of Statistical Science, Duke University"
 format: 
     beamer:
         navigation: horizontal
-        header-includes: |
-            \titlegraphic{\includegraphics[width=0.20\paperwidth]{duke_wordmark_royalblue_00539B.png}}
+header-includes:
+  - \usepackage{tabularx}
+  - \usepackage[none]{hyphenat}
 ---
 
 ## Introduction
 
-- Placeholder
-- Placeholder
+**Business Context**  
+Subrogation is a critical part of the claim lifecycle. When a third party is liable, recovery reduces net incurred loss, improves loss ratios, and enhances reserving accuracy—making subrogation a key financial and loss-mitigation lever.
+
+**The Core Challenge**  
+Current subrogation identification relies heavily on adjuster judgment and manual file review. This process is slow, inconsistent, and often results in missed recovery opportunities across thousands of claims.
+
+
+## Subrogation Modeling Framework
+
+**Our Mission**  
+Build a predictive model using 2020–2021 first-party physical damage claims to flag potential subrogation opportunities, identify key indicators, and provide recommendations for operational use.
+
+**Modeling Objective**  
+Predict a binary outcome *Subrogation Opportunity*  
+(1 = likely recovery, 0 = not likely).  
+Evaluation Metric: \textcolor{red}{F1 score} (balances precision and recall due to asymmetric business costs).
+
+**Business Value**
+\begin{itemize}
+  \item[$\bullet$] Improve recovery rates and reduce net incurred losses  
+  \item[$\bullet$] Help subrogation specialists prioritize high-value cases  
+  \item[$\bullet$] Reduce time spent on low-likelihood opportunities  
+  \item[$\bullet$] Support data-driven decision-making in the claims process  
+\end{itemize}
+
+
+## Data Overview
+\small
+
+::: columns
+::: column
+
+![](num_corr.png){width=100%}
+
+![](target_var.png){width=100%}
+
+:::
+
+::: column
+
+**Dataset Summary**  
+- Training data: 18,000 rows with subrogation indicator (0/1)  
+- Test data: 12,000 rows without the indicator  
+- Features include policyholder, driver, vehicle, accident details, and estimated payout  
+
+**Data Quality Steps**  
+- Removed 2 rows with missing subrogation indicator  
+- Removed 1 row with all values missing  
+- Test dataset contains no NAs  
+- Dropped `vehicle_made_year` (post-claim dates → impossible)  
+- Excluded `age_of_vehicle` (unreliable reporting)  
+
+:::
+:::
+
+## Why We Used Multiple Preprocessing Pipelines?
+\footnotesize
+
+Each model family has its own optimized pipeline, in accordance with their algorithm characteristics.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{l|X|X|X|X|X}
+\hline
+\textbf{Model} 
+& \textbf{TabM} 
+& \textbf{Linear Model} 
+& \textbf{CatBoost} 
+& \textbf{LightGBM} 
+& \textbf{XGBoost} \\
+\hline
+\textbf{Numerical} 
+& Normalize (quantile or z-score)
+& Normalize (z-score)
+& Works well with raw data
+& Works well with raw data
+& Works well with raw data \\
+\hline
+\textbf{Categorical} 
+& One-Hot Encoding
+& One-Hot Encoding
+& Native handling
+& Native handling
+& One-Hot Encoding \\
+\hline
+\end{tabularx}
+\end{table}
+
+
+
+
 
 ## Methods
 
