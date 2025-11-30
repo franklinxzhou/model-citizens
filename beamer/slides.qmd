@@ -593,5 +593,6 @@ XGBoost
 
 ## Feature Importance Plots For Different Models
 ![](XGBoost_importance.png){width=48%}
+![](xgboost_im.png){width=48%}
 ![](CatBoost_importance.png){width=48%}
 ![](TabM_importance.png){width=48%}
