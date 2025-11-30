@@ -110,19 +110,9 @@ Each model family has its own optimized pipeline, in accordance with their algor
 
 ## We Leverages Multiple Model Families
 
-- **Linear Model**: Logistic Regression model with LASSO
-- **Tree-based Model**: XGBoost, CatBoost, LightGBM
-- **MLP**: TabM
-
-| Model          | Private Score | Public Score |
-|----------------|---------------|--------------|
-| TabM           | 0.58325       | 0.60298      |
-| CatBoost       | 0.58215       | 0.60180      |
-| XGBoost        | 0.57952       | 0.60078      |
-| LogReg + Lasso | 0.57698       | 0.59407      |
-| LightGBM       | 0.57467       | 0.59093      |
-
-*Additional models considered*: LogitBoost, Random Forest
+- **Linear Model**: Logistic Regression with LASSO  
+- **Tree-based Models**: XGBoost, CatBoost, LightGBM, LogitBoost, Random Forest  
+- **MLP-based Models**: TabM
 
 ## Sample Workflow
 \begin{center}
@@ -180,6 +170,20 @@ If each invidual model outperforms random guessing ($p>0.5$) and is independent,
 - Overfitting is mitigated as the a single model might obsess over a tiny, unimportant detail in the data, while the group ignores these details and focuses on the main trends
 
 
+## Why We Choose Majority Voting Ensemble 
+
+Majority Voting is better then stacking, because
+
+- We trained each individual model with a tailor-made preprocessing pipeline, to optimize the individual model performance
+- Stacking requires a unified input feature matrix
+- If we use one unified preprocessing pipeline to retrain individual models, their performance will greatly degrade
+
+Majority Voting is better than weighted majority, because
+
+- For validation set performance, XGBoost > CatBoost > TabM
+- For test set performance (per private score): TabM > CatBoost > XGBoost
+- Majority voting algorithm tends to give XGBoost the highest weight
+- The resulting ensemble is an "expert" with validation set but a "failure" with test set
 
 ## Majority Voting Ensemble
 \footnotesize
@@ -203,25 +207,88 @@ LightGBM  & 0.59682 \\
 
 \end{center}
 
+## Feature Selection Across Models
+\scriptsize
 
-## Why We Choose Majority Voting Ensemble 
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.22}
+\begin{tabularx}{\textwidth}{
+    >{\raggedright\arraybackslash}p{0.17\textwidth} |
+    >{\raggedright\arraybackslash}p{0.38\textwidth} |
+    >{\raggedright\arraybackslash}p{0.38\textwidth}
+}
+\hline
+\textbf{Model} & \textbf{Primary Selection Mechanism} & \textbf{Key Differentiator} \\
+\hline
 
-Majority Voting is better then stacking, because
+XGBoost &
+Gain-based split selection using first-order and second-order gradient statistics. &
+Precise, curvature-aware feature scoring with strong regularization. \\
 
-- We trained each individual model with a tailor-made preprocessing pipeline, to optimize the individual model performance
-- Stacking requires a unified input feature matrix
-- If we use one unified preprocessing pipeline to retrain individual models, their performance will greatly degrade
+LightGBM &
+Histogram-based gain estimation with Exclusive Feature Bundling (EFB). &
+Highly efficient and scalable on sparse or high-dimensional tabular data. \\
 
-Majority Voting is better than weighted majority, because
+CatBoost &
+Ordered Target Statistics combined with gain-based splitting on leakage-free categorical encodings. &
+Best-in-class categorical handling with minimal overfitting. \\
 
-- For validation set performance, XGBoost > CatBoost > TabM
-- For test set performance (per private score): TabM > CatBoost > XGBoost
-- Majority voting algorithm tends to give XGBoost the highest weight
-- The resulting ensemble is an "expert" with validation set but a "failure" with test set
+TabM (MLP) &
+Implicit feature weighting learned through nonlinear layers and gradient-based optimization (no explicit splits). &
+Soft, continuous reweighting captures smooth nonlinear interactions. \\
 
-## Conclusion
+\hline
+\end{tabularx}
+\end{table}
 
-- Placeholder
+## SHAP & Feature Importance
+
+\begin{center}
+\includegraphics[width=0.6\textwidth]{XGBoost_SHAP.png}
+\end{center}
+
+
+## Model Evaluation & Results
+\scriptsize
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.25}
+
+\begin{tabularx}{\textwidth}{
+    >{\raggedright\arraybackslash}p{0.20\textwidth} |
+    >{\raggedright\arraybackslash}p{0.18\textwidth} |
+    >{\raggedright\arraybackslash}p{0.18\textwidth} |
+    >{\raggedright\arraybackslash}X
+}
+\hline
+\textbf{Model} & \textbf{Private Score} & \textbf{Public} & \textbf{Note} \\
+\hline
+
+Ensemble & 0.58333 & 0.60866 & +0.4\% over the best single model \\
+
+XGBoost & 0.57886 & 0.60600 & Best individual model \\
+
+CatBoost & 0.57653 & 0.60491 & Handled categorical features well \\
+
+TabM & 0.58325 & 0.60298 & Competitive deep-tabular model and consistent across seeds \\
+
+LightGBM & 0.57168 & 0.59682 & Fast training but underperformed compared to XGBoost/CatBoost \\
+
+Simple XGBoost & 0.50157 & 0.51584 & Benchmark \\
+
+\hline
+\end{tabularx}
+\end{table}
+
+## Limitations
+- Many pipelines = complexity
+- Harder to interpret combined model
+- Majority vote doesn't use calibrated probabilities
+- Feature engineering consistency is limited
+
+
 
 ## Comparison of Preprocessing Pipelines for GBMs
 
@@ -523,3 +590,8 @@ XGBoost
 
 \end{tikzpicture}
 \end{center}
+
+## Feature Importance Plots For Different Models
+![](XGBoost_importance.png){width=48%}
+![](CatBoost_importance.png){width=48%}
+![](TabM_importance.png){width=48%}
