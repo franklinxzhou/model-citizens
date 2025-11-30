@@ -121,6 +121,45 @@ Each model family has its own optimized pipeline, in accordance with their algor
 *Additional models considered*: LogitBoost, Random Forest
 
 ## Sample Workflow
+\begin{center}
+\begin{tikzpicture}[
+    scale=0.78,
+    transform shape,
+    node distance=0.42cm,
+    >=latex,
+    box/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=blue!60,
+        fill=blue!10,
+        very thick,
+        minimum width=6cm,
+        minimum height=0.8cm,
+        align=center,
+    }
+]
+
+\node (A) [box] {Raw Datasets};
+\node (B) [box, below=of A] {Data Cleaning};
+\node (C) [box, below=of B] {Feature Engineering};
+\node (D) [box, below=of C] {Model Selection};
+\node (E) [box, below=of D] {Hyperparameter Tuning};
+\node (F) [box, below=of E] {Model Training};
+\node (G) [box, below=of F] {Evaluation};
+\node (H) [box, below=of G] {Inference Pipeline};
+\node (I) [box, below=of H] {Output};
+
+\draw[->, thick] (A) -- (B);
+\draw[->, thick] (B) -- (C);
+\draw[->, thick] (C) -- (D);
+\draw[->, thick] (D) -- (E);
+\draw[->, thick] (E) -- (F);
+\draw[->, thick] (F) -- (G);
+\draw[->, thick] (G) -- (H);
+\draw[->, thick] (H) -- (I);
+
+\end{tikzpicture}
+\end{center}
 
 
 
@@ -234,20 +273,85 @@ Majority Voting is better than weighted majority, because
     }
 ]
 
-% ---------- LEFT COLUMN (DATA & FEATURE PIPELINE) ----------
+% ---------- LEFT COLUMN ----------
 \node (A) [boxL] {Raw Input Data\\[-0.2em]{\scriptsize Training / Testing CSVs}};
 \node (B) [boxL, below=of A] {Drop Missing Targets\\[-0.2em]{\scriptsize Remove NA subrogation}};
 \node (C) [boxL, below=of B] {Train/Test Split\\[-0.2em]{\scriptsize Stratified 70/30}};
 \node (D) [boxL, below=of C] {Data Cleaning\\[-0.2em]{\scriptsize Date parse / Fix future years}};
 \node (E) [boxL, below=of D] {Feature Engineering\\[-0.2em]{\scriptsize Temporal / Liability / Ratios / Domain}};
 \node (F) [boxL, below=of E] {Preprocessing\\[-0.2em]{\scriptsize Income bins / Label Encoding / Align columns}};
-\node (G) [boxL, below=of F] {Hyperparameter Tuning\\[-0.2em]{\scriptsize Optuna (F1 objective)}};
 
-% ---------- RIGHT COLUMN (MODEL PIPELINE ONLY) ----------
-\node (H) [boxR, right=3.6cm of G] {Model Training\\[-0.2em]{\scriptsize XGBoost (best params)}};
+% ---------- RIGHT COLUMN ----------
+\node (G) [boxR, right=2.8cm of F] {Hyperparameter Tuning\\[-0.2em]{\scriptsize Optuna (F1 objective)}};
+\node (H) [boxR,       above=of G] {Model Training\\[-0.2em]{\scriptsize XGBoost (best params)}};
 \node (I) [boxR,       above=of H] {Threshold Search\\[-0.2em]{\scriptsize PR curve → Max-F1}};
 \node (J) [boxR,       above=of I] {Final Evaluation\\[-0.2em]{\scriptsize F1 / ROC-AUC / PR-AUC}};
-\node (K) [boxR,       above=of J] {Output\\[-0.2em]{\scriptsize Final CSV (claim\_number + subrogation)}};
+\node (K) [boxR,       above=of J] {Inference Pipeline\\[-0.2em]{\scriptsize Preprocess + Predict}};
+\node (L) [boxR,       above=of K] {Output\\[-0.2em]{\scriptsize Final Prediction CSV}};
+
+% ---------- ARROWS ----------
+\draw[->, thick] (A) -- (B);
+\draw[->, thick] (B) -- (C);
+\draw[->, thick] (C) -- (D);
+\draw[->, thick] (D) -- (E);
+\draw[->, thick] (E) -- (F);
+
+\draw[->, thick] (F) -- (G);
+\draw[->, thick] (G) -- (H);
+\draw[->, thick] (H) -- (I);
+\draw[->, thick] (I) -- (J);
+\draw[->, thick] (J) -- (K);
+\draw[->, thick] (K) -- (L);
+
+\end{tikzpicture}
+\end{center}
+
+
+## Sample Workflow 2 (XGBoost 2)
+
+\begin{center}
+\begin{tikzpicture}[
+    scale=0.78,
+    transform shape,
+    node distance=0.40cm,
+    >=latex,
+    boxL/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=blue!60,
+        fill=blue!10,
+        very thick,
+        minimum width=4.4cm,
+        minimum height=0.8cm,
+        align=center,
+    },
+    boxR/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=teal!60,
+        fill=teal!10,
+        very thick,
+        minimum width=4.4cm,
+        minimum height=0.8cm,
+        align=center,
+    }
+]
+
+% ---------- LEFT COLUMN ----------
+\node (A) [boxL] {Data Loading\\[-0.2em]{\scriptsize Read Training/Testing CSVs}};
+\node (B) [boxL, below=of A] {Feature Engineering\\[-0.2em]{\scriptsize Dates / Season / Interaction / Logs}};
+\node (C) [boxL, below=of B] {Robust Preprocessor\\[-0.2em]{\scriptsize Label Encoding + UNK Handling}};
+\node (D) [boxL, below=of C] {Train/Val Split\\[-0.2em]{\scriptsize Stratified Sampling}};
+\node (E) [boxL, below=of D] {Feature Selection\\[-0.2em]{\scriptsize XGBoost + SelectFromModel (80 feats)}};
+\node (F) [boxL, below=of E] {Hyperparameter Tuning\\[-0.2em]{\scriptsize Optuna (5-fold AP)}};
+
+% ---------- RIGHT COLUMN ----------
+\node (G) [boxR, right=2.8cm of F] {Final Model Training\\[-0.2em]{\scriptsize XGBoost w/ Best Params}};
+\node (H) [boxR,       above=of G] {Threshold Optimization\\[-0.2em]{\scriptsize PR Curve → Max-F1}};
+\node (I) [boxR,       above=of H] {Model Evaluation\\[-0.2em]{\scriptsize F1 / ROC-AUC / PR-AUC / CM}};
+\node (J) [boxR,       above=of I] {Model Explainability\\[-0.2em]{\scriptsize SHAP + Perm. Importance}};
+\node (K) [boxR,       above=of J] {Inference Pipeline\\[-0.2em]{\scriptsize Preprocess → Predict}};
+\node (L) [boxR,       above=of K] {Final Output\\[-0.2em]{\scriptsize prediction.csv}};
 
 % ---------- CONNECTIONS ----------
 \draw[->, thick] (A) -- (B);
@@ -255,12 +359,100 @@ Majority Voting is better than weighted majority, because
 \draw[->, thick] (C) -- (D);
 \draw[->, thick] (D) -- (E);
 \draw[->, thick] (E) -- (F);
-\draw[->, thick] (F) -- (G);
 
+\draw[->, thick] (F) -- (G);
 \draw[->, thick] (G) -- (H);
 \draw[->, thick] (H) -- (I);
 \draw[->, thick] (I) -- (J);
 \draw[->, thick] (J) -- (K);
+\draw[->, thick] (K) -- (L);
+
+\end{tikzpicture}
+\end{center}
+
+
+## Sample Workflow 3 (CatBoost)
+\begin{center}
+\begin{tikzpicture}[
+    scale=0.78,
+    transform shape,
+    node distance=0.40cm,
+    >=latex,
+    box/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=blue!60,
+        fill=blue!10,
+        very thick,
+        minimum width=6.0cm,
+        minimum height=0.8cm,
+        align=center,
+    }
+]
+
+% ----------- NODES (Single Column) -----------
+\node (A) [box] {Raw Input Data\\[-0.2em]{\scriptsize Training/Testing CSVs}};
+\node (B) [box, below=of A] {Data Cleaning\\[-0.2em]{\scriptsize Fix missing / inconsistencies}};
+\node (C) [box, below=of B] {Feature Engineering\\[-0.2em]{\scriptsize Few ratio features only}};
+\node (D) [box, below=of C] {No Preprocessing\\[-0.2em]{\scriptsize Cast categorical values to strings}};
+\node (E) [box, below=of D] {Hyperparameter Tuning\\[-0.2em]{\scriptsize Optuna (Cross-validation F1)}};
+\node (F) [box, below=of E] {Model Training\\[-0.2em]{\scriptsize CatBoost}};
+\node (G) [box, below=of F] {Inference Pipeline\\[-0.2em]{\scriptsize Preprocess → Predict}};
+\node (H) [box, below=of G] {Final Output\\[-0.2em]{\scriptsize Prediction CSV}};
+
+% ------------ ARROWS ------------
+\draw[->, thick] (A) -- (B);
+\draw[->, thick] (B) -- (C);
+\draw[->, thick] (C) -- (D);
+\draw[->, thick] (D) -- (E);
+\draw[->, thick] (E) -- (F);
+\draw[->, thick] (F) -- (G);
+\draw[->, thick] (G) -- (H);
+
+\end{tikzpicture}
+\end{center}
+
+## Sample Workflow 4 (TabM)
+
+\begin{center}
+\begin{tikzpicture}[
+    scale=0.78,
+    transform shape,
+    node distance=0.32cm,
+    >=latex,
+    box/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=blue!60,
+        fill=blue!10,
+        very thick,
+        minimum width=5.4cm,
+        minimum height=0.72cm,
+        align=center,
+        font=\footnotesize
+    }
+]
+
+% ----------- NODES -----------
+\node (A) [box] {Raw Input Data\\[-0.25em]{\scriptsize Training/Testing CSVs}};
+\node (B) [box, below=of A] {Data Cleaning\\[-0.25em]{\scriptsize Fix missing / inconsistencies}};
+\node (C) [box, below=of B] {Feature Engineering\\[-0.25em]{\scriptsize Few domain-specific features}};
+\node (D) [box, below=of C] {No Preprocessing\\[-0.25em]{\scriptsize Integer indexing (cat.) / NaN checks (num.)}};
+\node (E) [box, below=of D] {Hyperparameter Tuning\\[-0.25em]{\scriptsize Optuna (Cross-validation F1)}};
+\node (F) [box, below=of E] {Model Training\\[-0.25em]{\scriptsize TabM}};
+\node (G) [box, below=of F] {Threshold Selection\\[-0.25em]{\scriptsize Post-hoc threshold optimization}};
+\node (H) [box, below=of G] {Inference Pipeline\\[-0.25em]{\scriptsize Preprocess → Predict}};
+\node (I) [box, below=of H] {Final Output\\[-0.25em]{\scriptsize Prediction CSV}};
+
+% ----------- ARROWS -----------
+\draw[->, thick] (A) -- (B);
+\draw[->, thick] (B) -- (C);
+\draw[->, thick] (C) -- (D);
+\draw[->, thick] (D) -- (E);
+\draw[->, thick] (E) -- (F);
+\draw[->, thick] (F) -- (G);
+\draw[->, thick] (G) -- (H);
+\draw[->, thick] (H) -- (I);
 
 \end{tikzpicture}
 \end{center}
