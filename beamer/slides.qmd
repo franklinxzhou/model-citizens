@@ -229,14 +229,17 @@ LightGBM  & 0.59682 \\
 XGBoost &
 Gain-based split selection using first-order and second-order gradient statistics. &
 Precise, curvature-aware feature scoring with strong regularization. \\
+\hline
 
 LightGBM &
 Histogram-based gain estimation with Exclusive Feature Bundling (EFB). &
 Highly efficient and scalable on sparse or high-dimensional tabular data. \\
+\hline
 
 CatBoost &
 Ordered Target Statistics combined with gain-based splitting on leakage-free categorical encodings. &
 Best-in-class categorical handling with minimal overfitting. \\
+\hline
 
 TabM (MLP) &
 Implicit feature weighting learned through nonlinear layers and gradient-based optimization (no explicit splits). &
@@ -257,6 +260,25 @@ Soft, continuous reweighting captures smooth nonlinear interactions. \\
 Compared to the feature importance plots in the last slide, **liab_prct**, **witness_present_ind**, and **in_network_bodyshop** 
 consistently surfaced as high-impact predictors.
 
+## Assumption & Robustness Checks 
+
+Tree-based Models
+
+- Cross-validation scores stable across folds/seeds
+- Feature importance consistent across model runs
+
+Deep Tabular Model
+
+- Examined training/validation loss to confirm convergence
+- Stable performance across multiple seeds
+- Key variables aligned with tree-based models
+
+Ensemble (Majority Vote)
+
+- Verified diversity via low–moderate prediction correlations
+- Ensemble showed slight but consistent improvement over best single model
+
+
 ## Model Evaluation & Results
 \scriptsize
 
@@ -275,14 +297,19 @@ consistently surfaced as high-impact predictors.
 \hline
 
 Ensemble & 0.58333 & 0.60866 & +0.4\% over the best single model \\
+\hline
 
 XGBoost & 0.57886 & 0.60600 & Best individual model \\
+\hline
 
 CatBoost & 0.57653 & 0.60491 & Handled categorical features well \\
+\hline
 
 TabM & 0.58325 & 0.60298 & Competitive deep-tabular model and consistent across seeds \\
+\hline
 
 LightGBM & 0.57168 & 0.59682 & Fast training but underperformed compared to XGBoost/CatBoost \\
+\hline
 
 Simple XGBoost & 0.50157 & 0.51584 & Benchmark \\
 
@@ -299,6 +326,13 @@ Simple XGBoost & 0.50157 & 0.51584 & Benchmark \\
 ## Conclusion
 
 We predicted which auto insurance claims are likely to result in successful subrogation using a majority-vote ensemble of XGBoost, CatBoost, LightGBM, and TabM, which improved performance by 0.4% over the best single model.
+
+---
+center: true
+---
+
+# Appendix
+
 
 ## Comparison of Preprocessing Pipelines for GBMs
 
