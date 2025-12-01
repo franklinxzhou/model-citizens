@@ -197,7 +197,7 @@ Majority Voting is better than weighted majority, because
 \renewcommand{\arraystretch}{1.25}
 \begin{tabular}{l r}
 \hline
-\textbf{Model}  & \textbf{Public Score} \\
+\textbf{Model}  & \textbf{Public F1} \\
 \hline
 XGBoost   & 0.60600 \\
 CatBoost  & 0.60491 \\
