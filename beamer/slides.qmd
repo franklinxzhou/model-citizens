@@ -347,6 +347,7 @@ Simple XGBoost & 0.51584 & Benchmark \\
 - Harder to interpret combined model
 - Majority vote doesn't use calibrated probabilities
 - Feature engineering consistency is limited
+- Public leaderboard–driven model selection introduces overfitting risk
 
 ## Conclusion
 
