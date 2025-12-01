@@ -7,11 +7,20 @@ format:
     beamer:
         navigation: horizontal
 header-includes:
+  - \titlegraphic{\includegraphics[width=0.4\paperwidth]{duke_university_wordmark_navyblue_012169.png}} 
   - \usepackage{tabularx}
   - \usepackage[none]{hyphenat}
   - \setbeamertemplate{itemize items}[ball]
   - \usepackage{tikz}
   - \usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+  - |
+      \definecolor{dukeblue}{HTML}{012169}
+      \addtobeamertemplate{background}{%
+        \begin{tikzpicture}[remember picture,overlay]
+          \draw[dukeblue, line width=7pt]
+            (current page.north west) rectangle (current page.south east);
+        \end{tikzpicture}
+      }{}
 ---
 
 ## Introduction
@@ -346,6 +355,8 @@ We predicted which auto insurance claims are likely to result in successful subr
 ---
 center: true
 ---
+
+# Thank You
 
 # Appendix
 
