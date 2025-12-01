@@ -302,7 +302,7 @@ Deep Tabular Model
 
 Ensemble (Majority Vote)
 
-- Verified diversity via low–moderate prediction correlations
+- Verified diversity via moderate prediction correlations
 
 
 ## Model Evaluation & Results
