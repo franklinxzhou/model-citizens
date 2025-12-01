@@ -254,11 +254,11 @@ Soft, continuous reweighting captures smooth nonlinear interactions. \\
 \scriptsize
 
 \begin{center}
-\includegraphics[width=0.5\textwidth]{XGBoost_SHAP.png}
+\includegraphics[width=0.53\textwidth]{XGBoost_SHAP.png}
 \end{center}
 
-\normalsize
-Compared to the feature importance plots in the last slide, **liab_prct**, **witness_present_ind**, and **in_network_bodyshop** 
+\small
+Compared to the feature importance plots of other models, **liab_prct**, **witness_present_ind**, and **in_network_bodyshop** 
 consistently surfaced as high-impact predictors.
 
 ## Additional Useful Variables
@@ -282,19 +282,18 @@ Socioeconomic
 
 Tree-based Models
 
-- Cross-validation scores stable across folds/seeds
+- Checked overfitting via training vs validation scores
+- Cross-validation scores stable across folds
 - Feature importance consistent across model runs
 
 Deep Tabular Model
 
 - Examined training/validation loss to confirm convergence
-- Stable performance across multiple seeds
 - Key variables aligned with tree-based models
 
 Ensemble (Majority Vote)
 
 - Verified diversity via low–moderate prediction correlations
-- Ensemble showed slight but consistent improvement over best single model
 
 
 ## Model Evaluation & Results
@@ -333,7 +332,6 @@ Simple XGBoost & 0.51584 & Benchmark \\
 
 \end{tabularx}
 \end{table}
-
 
 ## Limitations
 - Many pipelines = complexity
