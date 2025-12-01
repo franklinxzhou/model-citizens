@@ -47,9 +47,9 @@ Evaluation Metric: \textcolor{red}{F1 score} (balances precision and recall due 
 ::: columns
 ::: column
 
-![](num_box.png){width=90%}
-
 ![](target_var.png){width=90%}
+
+![](num_box.png){width=90%}
 
 :::
 
@@ -254,11 +254,29 @@ Soft, continuous reweighting captures smooth nonlinear interactions. \\
 \scriptsize
 
 \begin{center}
-\includegraphics[width=0.55\textwidth]{XGBoost_SHAP.png}
+\includegraphics[width=0.5\textwidth]{XGBoost_SHAP.png}
 \end{center}
 
+\normalsize
 Compared to the feature importance plots in the last slide, **liab_prct**, **witness_present_ind**, and **in_network_bodyshop** 
 consistently surfaced as high-impact predictors.
+
+## Additional Useful Variables
+
+Policyholder behavior
+
+- Telematics / Driving behavior (speeding, hard brakes, miles driven)
+- Payment behavior (late payments, lapse tendencies)
+
+Environmental risk
+
+- Weather exposure (hail, hurricanes, freeze events)
+- Traffic density or road safety score
+
+Socioeconomic
+
+- Zip-code–level socioeconomic indicators (median income, population density)
+- Education level at area level
 
 ## Assumption & Robustness Checks 
 
@@ -287,35 +305,35 @@ Ensemble (Majority Vote)
 \renewcommand{\arraystretch}{1.25}
 
 \begin{tabularx}{\textwidth}{
-    >{\raggedright\arraybackslash}p{0.20\textwidth} |
-    >{\raggedright\arraybackslash}p{0.18\textwidth} |
+    >{\raggedright\arraybackslash}p{0.25\textwidth} |
     >{\raggedright\arraybackslash}p{0.18\textwidth} |
     >{\raggedright\arraybackslash}X
 }
 \hline
-\textbf{Model} & \textbf{Private Score} & \textbf{Public} & \textbf{Note} \\
+\textbf{Model} & \textbf{Public} & \textbf{Note} \\
 \hline
 
-Ensemble & 0.58333 & 0.60866 & +0.4\% over the best single model \\
+Ensemble & 0.60866 & +0.4\% over the best single model \\
 \hline
 
-XGBoost & 0.57886 & 0.60600 & Best individual model \\
+XGBoost & 0.60600 & Best individual model \\
 \hline
 
-CatBoost & 0.57653 & 0.60491 & Handled categorical features well \\
+CatBoost & 0.60491 & Handled categorical features well \\
 \hline
 
-TabM & 0.58325 & 0.60298 & Competitive deep-tabular model and consistent across seeds \\
+TabM & 0.60298 & Competitive deep-tabular model and consistent across seeds \\
 \hline
 
-LightGBM & 0.57168 & 0.59682 & Fast training but underperformed compared to XGBoost/CatBoost \\
+LightGBM & 0.59682 & Fast training but underperformed compared to XGBoost/CatBoost \\
 \hline
 
-Simple XGBoost & 0.50157 & 0.51584 & Benchmark \\
-
+Simple XGBoost & 0.51584 & Benchmark \\
 \hline
+
 \end{tabularx}
 \end{table}
+
 
 ## Limitations
 - Many pipelines = complexity
