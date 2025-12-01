@@ -310,10 +310,10 @@ Ensemble (Majority Vote)
     >{\raggedright\arraybackslash}X
 }
 \hline
-\textbf{Model} & \textbf{Public} & \textbf{Note} \\
+\textbf{Model} & \textbf{Public F1} & \textbf{Note} \\
 \hline
 
-Ensemble & 0.60866 & +0.4\% over the best single model \\
+Ensemble & 0.60866 & +0.4\% over the best single model; +18\% over benchmark \\
 \hline
 
 XGBoost & 0.60600 & Best individual model \\
@@ -343,7 +343,7 @@ Simple XGBoost & 0.51584 & Benchmark \\
 
 ## Conclusion
 
-We predicted which auto insurance claims are likely to result in successful subrogation using a majority-vote ensemble of XGBoost, CatBoost, LightGBM, and TabM, which improved performance by 0.4% over the best single model.
+We predicted which auto insurance claims are likely to result in successful subrogation using a majority-vote ensemble of XGBoost, CatBoost, LightGBM, and TabM, achieving an 18% improvement over the benchmark and a modest gain over the best single model.
 
 ---
 center: true
