@@ -1,3 +1,6 @@
+2025 Traveler UMC - Team Model Citizens
+Wenjie Gong, Cecilia Liu, Simeng Wu, Carol Zhou, Franklin Zhou
+
 Top 25 models, by private score:
 
 | Model          | Preprocessor/ID | Private Score | Public Score |
